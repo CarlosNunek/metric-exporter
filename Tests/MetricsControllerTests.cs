@@ -6,6 +6,8 @@ using Xunit;
 using metric_exporter.Controllers;
 using metric_exporter.Services;
 using InfluxDB.Client.Core.Flux.Domain;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Primitives;
 
 namespace metric_exporter.Tests
 {
@@ -48,12 +50,33 @@ namespace metric_exporter.Tests
         {
             private readonly List<FakeRecord> _fakeRecords;
 
-            public FakeInfluxService(List<FakeRecord> records) : base(null)
+            public FakeInfluxService(List<FakeRecord> records) : base(new EmptyConfiguration())
             {
+
                 _fakeRecords = records;
             }
+    
+             private class EmptyConfiguration : IConfiguration {
+                public IEnumerable<IConfigurationSection> GetChildren() => Enumerable.Empty<IConfigurationSection>();
+                public IChangeToken GetReloadToken() => null;
+                public IConfigurationSection GetSection(string key) => new EmptySection();
+                public string this[string key] { get => null; set { } }
+                private class EmptySection : IConfigurationSection
+                {
+                    public string this[string key] { get => null; set { } }
+                    public string Key => string.Empty;
+                    public string Path => string.Empty;
+                    public string Value { get => null; set { } }
+                    public IEnumerable<IConfigurationSection> GetChildren() => Enumerable.Empty<IConfigurationSection>();
+                    public IChangeToken GetReloadToken() => null;
+                    public IConfigurationSection GetSection(string key) => this;
+                }
+            }
+        
 
-            public new Task<List<FluxTable>> GetMetricsAsync(){
+
+
+            public new Task<List<FluxTable>> GetMetricsAsync() {
                 var fluxTable = new FluxTable();
 
                 var records = _fakeRecords.Select(fake =>
@@ -68,8 +91,11 @@ namespace metric_exporter.Tests
                 var recordsProp = typeof(FluxTable).GetProperty("Records");
                 recordsProp?.SetValue(fluxTable, records);
 
-                return Task.FromResult(new List<FluxTable> { fluxTable });}
+                return Task.FromResult(new List<FluxTable> { fluxTable }); }
 
         }
+
+
     }
 }
+
