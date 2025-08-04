@@ -14,26 +14,18 @@ namespace metric_exporter.Tests
         [Fact]
         public async Task GetMetrics_ReturnsExpectedMetrics()
         {
-            // Crear registros falsos con estructura similar
-            var fakeRecords = new List<FakeFluxRecord>
+            // Simulamos el comportamiento de la base con datos falsos
+            var simulatedRecords = new List<FakeRecord>
             {
-                new FakeFluxRecord("login"),
-                new FakeFluxRecord("registro"),
-                new FakeFluxRecord("login")
+                new FakeRecord("login"),
+                new FakeRecord("registro"),
+                new FakeRecord("login")
             };
 
-            // Adaptarlos a FluxRecord dinámicamente
-            var records = fakeRecords.Select(r => r.ToFluxRecord()).ToList();
+            var fakeService = new FakeInfluxService(simulatedRecords);
 
-            // Simular tabla
-            var table = new FluxTable();
-            var recordsProp = typeof(FluxTable).GetProperty("Records");
-            recordsProp.SetValue(table, records);
+            var controller = new MetricsController(fakeService);
 
-            // Servicio falso
-            var service = new FakeInfluxService(new List<FluxTable> { table });
-
-            var controller = new MetricsController(service);
             var result = await controller.GetMetrics();
 
             var content = Assert.IsType<ContentResult>(result);
@@ -42,38 +34,42 @@ namespace metric_exporter.Tests
             Assert.Contains("eventos_totales{canal=\"registro\"} 1", content.Content);
         }
 
-        private class FakeFluxRecord
+        private class FakeRecord
         {
-            public string Canal { get; }
+            public Dictionary<string, object> Values { get; }
 
-            public FakeFluxRecord(string canal)
+            public FakeRecord(string canal)
             {
-                Canal = canal;
-            }
-
-            public FluxRecord ToFluxRecord()
-            {
-                var record = (FluxRecord)System.Runtime.Serialization.FormatterServices.GetUninitializedObject(typeof(FluxRecord));
-                var field = typeof(FluxRecord).GetField("_values", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                var dict = new Dictionary<string, object> { { "canal", Canal } };
-                field?.SetValue(record, dict);
-                return record;
+                Values = new Dictionary<string, object> { { "canal", canal } };
             }
         }
 
         private class FakeInfluxService : InfluxService
         {
-            private readonly List<FluxTable> _tables;
+            private readonly List<FakeRecord> _fakeRecords;
 
-            public FakeInfluxService(List<FluxTable> tables) : base(null)
+            public FakeInfluxService(List<FakeRecord> records) : base(null)
             {
-                _tables = tables;
+                _fakeRecords = records;
             }
 
-            public new Task<List<FluxTable>> GetMetricsAsync()
-            {
-                return Task.FromResult(_tables);
-            }
+            public new Task<List<FluxTable>> GetMetricsAsync(){
+                var fluxTable = new FluxTable();
+
+                var records = _fakeRecords.Select(fake =>
+                {
+                    var record = (FluxRecord)System.Runtime.Serialization.FormatterServices
+                    .GetUninitializedObject(typeof(FluxRecord));
+                    var valuesField = typeof(FluxRecord).GetField("_values", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                    valuesField?.SetValue(record, fake.Values);
+                    return record;
+                }).ToList();
+
+                var recordsProp = typeof(FluxTable).GetProperty("Records");
+                recordsProp?.SetValue(fluxTable, records);
+
+                return Task.FromResult(new List<FluxTable> { fluxTable });}
+
         }
     }
 }
