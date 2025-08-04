@@ -1,0 +1,24 @@
+name: Build and Push metric-exporter to DockerHub
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    env:
+      IMAGE_TAG: ${{ github.sha }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Log in to DockerHub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Build and push Docker image
+        run: |
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/metric-exporter:latest .
+          docker tag ${{ secrets.DOCKERHUB_USERNAME }}/metric-exporter:latest ${{ secrets.DOCKERHUB_USERNAME }}/metric-exporter:${{ env.IMAGE_TAG }}
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/metric-exporter:latest
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/metric-exporter:${{ env.IMAGE_TAG }}

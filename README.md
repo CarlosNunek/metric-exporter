@@ -1,0 +1,3 @@
+# 📊 Metric Exporter
+
+Microservicio en .NET 8.0 para exponer métricas personalizadas desde InfluxDB en formato Prometheus...

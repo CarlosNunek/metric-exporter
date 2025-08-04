@@ -1,0 +1,22 @@
+# Build y temporales
+bin/
+obj/
+*.log
+
+# VS config
+*.user
+*.suo
+.vscode/
+*.vs/
+
+# NuGet
+*.nupkg
+*.snupkg
+project.lock.json
+project.fragment.lock.json
+
+# Otros
+*.db
+
+
+
