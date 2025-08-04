@@ -63,8 +63,8 @@ namespace metric_exporter.Tests
                 {
                     get
                     {
-                        if (key == "InfluxDB:Url") return "http://localhost:8086"; // dummy URL
-                        if (key == "InfluxDB:Token") return "ICusY4BPCbyxTKIxAtp7ciEalt96codUyofHs6wzANAmAH0TX9vTOGzMXor3Ryzgys-gfAHCUszY1WOcNz4v5A==";     // dummy token
+                        if (key == "InfluxDB:Url") return "http://localhost"; // dummy URL
+                        if (key == "InfluxDB:Token") return "test-token";     // dummy token
                         return null;
                     }
                     set { }
@@ -81,8 +81,8 @@ namespace metric_exporter.Tests
                     {
                         get
                         {
-                            if (Key == "InfluxDB:Url") return "http://localhost:8086";
-                            if (Key == "InfluxDB:Token") return "ICusY4BPCbyxTKIxAtp7ciEalt96codUyofHs6wzANAmAH0TX9vTOGzMXor3Ryzgys-gfAHCUszY1WOcNz4v5A==";
+                            if (Key == "InfluxDB:Url") return "http://localhost";
+                            if (Key == "InfluxDB:Token") return "test-token";
                             return null;
                         }
                         set { }
