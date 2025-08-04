@@ -55,27 +55,44 @@ namespace metric_exporter.Tests
 
                 _fakeRecords = records;
             }
-    
-             private class EmptyConfiguration : IConfiguration {
+
+            private class EmptyConfiguration : IConfiguration
+            {
+
+                public string this[string key]
+                {
+                    get
+                    {
+                        if (key == "InfluxDB:Url") return "http://localhost:8086"; // dummy URL
+                        if (key == "InfluxDB:Token") return "ICusY4BPCbyxTKIxAtp7ciEalt96codUyofHs6wzANAmAH0TX9vTOGzMXor3Ryzgys-gfAHCUszY1WOcNz4v5A==";     // dummy token
+                        return null;
+                    }
+                    set { }
+                }
                 public IEnumerable<IConfigurationSection> GetChildren() => Enumerable.Empty<IConfigurationSection>();
                 public IChangeToken GetReloadToken() => null;
                 public IConfigurationSection GetSection(string key) => new EmptySection();
-                public string this[string key] { get => null; set { } }
                 private class EmptySection : IConfigurationSection
                 {
                     public string this[string key] { get => null; set { } }
                     public string Key => string.Empty;
                     public string Path => string.Empty;
-                    public string Value { get => null; set { } }
+                    public string Value
+                    {
+                        get
+                        {
+                            if (Key == "InfluxDB:Url") return "http://localhost:8086";
+                            if (Key == "InfluxDB:Token") return "ICusY4BPCbyxTKIxAtp7ciEalt96codUyofHs6wzANAmAH0TX9vTOGzMXor3Ryzgys-gfAHCUszY1WOcNz4v5A==";
+                            return null;
+                        }
+                        set { }
+                    }
                     public IEnumerable<IConfigurationSection> GetChildren() => Enumerable.Empty<IConfigurationSection>();
                     public IChangeToken GetReloadToken() => null;
                     public IConfigurationSection GetSection(string key) => this;
                 }
             }
         
-
-
-
             public new Task<List<FluxTable>> GetMetricsAsync() {
                 var fluxTable = new FluxTable();
 
