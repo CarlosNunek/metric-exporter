@@ -14,22 +14,21 @@ namespace metric_exporter.Tests
         [Fact]
         public async Task GetMetrics_ReturnsExpectedMetrics()
         {
-            // Crear registros manualmente con valores
-            var records = new List<FluxRecord>();
+            // Simular Records como diccionarios
+            var record1 = CreateFakeRecord("login");
+            var record2 = CreateFakeRecord("registro");
+            var record3 = CreateFakeRecord("login");
 
-            records.Add(CreateFluxRecord("login"));
-            records.Add(CreateFluxRecord("registro"));
-            records.Add(CreateFluxRecord("login"));
+            var records = new List<FluxRecord> { record1, record2, record3 };
 
-            // Crear tabla con los registros
+            // Crear tabla con los registros simulados
             var table = new FluxTable();
-            typeof(FluxTable).GetProperty("Records").SetValue(table, records);
+            var prop = typeof(FluxTable).GetProperty("Records");
+            prop.SetValue(table, records);
 
-            // Crear servicio simulado
             var fakeService = new FakeInfluxService(new List<FluxTable> { table });
 
             var controller = new MetricsController(fakeService);
-
             var result = await controller.GetMetrics();
 
             var content = Assert.IsType<ContentResult>(result);
@@ -38,11 +37,13 @@ namespace metric_exporter.Tests
             Assert.Contains("eventos_totales{canal=\"registro\"} 1", content.Content);
         }
 
-        private FluxRecord CreateFluxRecord(string canal)
+        // Crea un FluxRecord simulado con canal
+        private FluxRecord CreateFakeRecord(string canal)
         {
-            var record = (FluxRecord)System.Runtime.Serialization.FormatterServices.GetUninitializedObject(typeof(FluxRecord));
-            typeof(FluxRecord).GetProperty("Values").SetValue(record, new Dictionary<string, object> { { "canal", canal } });
-            return record;
+            var rec = (FluxRecord)System.Runtime.Serialization.FormatterServices.GetUninitializedObject(typeof(FluxRecord));
+            var field = typeof(FluxRecord).GetField("_values", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            field.SetValue(rec, new Dictionary<string, object> { { "canal", canal } });
+            return rec;
         }
 
         private class FakeInfluxService : InfluxService
