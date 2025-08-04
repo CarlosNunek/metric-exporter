@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Moq;
 using Xunit;
 using metric_exporter.Controllers;
 using metric_exporter.Services;
@@ -15,37 +14,50 @@ namespace metric_exporter.Tests
         [Fact]
         public async Task GetMetrics_ReturnsExpectedMetrics()
         {
-            // Crear mock de FluxRecord
-            var mockRecord1 = new Mock<FluxRecord>(MockBehavior.Strict, 0);
-            mockRecord1.SetupGet(r => r.Values).Returns(new Dictionary<string, object> { { "canal", "login" } });
+            // Crear registros manualmente con valores
+            var records = new List<FluxRecord>();
 
-            var mockRecord2 = new Mock<FluxRecord>(MockBehavior.Strict, 0);
-            mockRecord2.SetupGet(r => r.Values).Returns(new Dictionary<string, object> { { "canal", "registro" } });
+            records.Add(CreateFluxRecord("login"));
+            records.Add(CreateFluxRecord("registro"));
+            records.Add(CreateFluxRecord("login"));
 
-            var mockRecord3 = new Mock<FluxRecord>(MockBehavior.Strict, 0);
-            mockRecord3.SetupGet(r => r.Values).Returns(new Dictionary<string, object> { { "canal", "login" } });
+            // Crear tabla con los registros
+            var table = new FluxTable();
+            typeof(FluxTable).GetProperty("Records").SetValue(table, records);
 
-            // Mock de FluxTable usando interfaz
-            var fluxTable = new Mock<FluxTable>();
-            var records = new List<FluxRecord> { mockRecord1.Object, mockRecord2.Object, mockRecord3.Object };
-            fluxTable.SetupGet(t => t.Records).Returns(records);
+            // Crear servicio simulado
+            var fakeService = new FakeInfluxService(new List<FluxTable> { table });
 
-            // Mock del servicio
-            var influxServiceMock = new Mock<InfluxService>(null);
-            influxServiceMock.Setup(s => s.GetMetricsAsync()).ReturnsAsync(new List<FluxTable> { fluxTable.Object });
+            var controller = new MetricsController(fakeService);
 
-            // Instanciar controller
-            var controller = new MetricsController(influxServiceMock.Object);
-
-            // Ejecutar acción
             var result = await controller.GetMetrics();
 
-            // Verificaciones
-            var contentResult = Assert.IsType<ContentResult>(result);
-            Assert.Equal("text/plain", contentResult.ContentType);
-            Assert.Contains("eventos_totales{canal=\"login\"} 2", contentResult.Content);
-            Assert.Contains("eventos_totales{canal=\"registro\"} 1", contentResult.Content);
+            var content = Assert.IsType<ContentResult>(result);
+            Assert.Equal("text/plain", content.ContentType);
+            Assert.Contains("eventos_totales{canal=\"login\"} 2", content.Content);
+            Assert.Contains("eventos_totales{canal=\"registro\"} 1", content.Content);
+        }
+
+        private FluxRecord CreateFluxRecord(string canal)
+        {
+            var record = (FluxRecord)System.Runtime.Serialization.FormatterServices.GetUninitializedObject(typeof(FluxRecord));
+            typeof(FluxRecord).GetProperty("Values").SetValue(record, new Dictionary<string, object> { { "canal", canal } });
+            return record;
+        }
+
+        private class FakeInfluxService : InfluxService
+        {
+            private readonly List<FluxTable> _tables;
+
+            public FakeInfluxService(List<FluxTable> tables) : base(null)
+            {
+                _tables = tables;
+            }
+
+            public new Task<List<FluxTable>> GetMetricsAsync()
+            {
+                return Task.FromResult(_tables);
+            }
         }
     }
 }
-
